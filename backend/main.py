@@ -43,6 +43,10 @@ async def lifespan(app: FastAPI):
     
     print("🚀 Starting Real-Time Detection API...")
     
+    # Download models from HuggingFace if not present
+    from .model_downloader import ensure_models_exist
+    ensure_models_exist()
+    
     # Load inference engine
     if MODEL_PATH.exists():
         engine = InferenceEngine(
@@ -50,6 +54,7 @@ async def lifespan(app: FastAPI):
             confidence_threshold=0.5,
             device="cpu"  # Use "cuda" if GPU available
         )
+        print(f"✅ Model loaded from {MODEL_PATH}")
     else:
         print(f"⚠️ Model not found at {MODEL_PATH}")
         print("   Please place your model file in the models/ directory")
