@@ -1,17 +1,18 @@
 """
 FastAPI Backend for Real-Time Object Detection
-Provides REST API for inference, metrics, and health checks.
+Provides REST API and WebSocket for inference, metrics, and health checks.
 """
 
 import io
 import base64
+import json
 import cv2
 import numpy as np
 from pathlib import Path
 from typing import Optional
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
@@ -257,4 +258,80 @@ async def get_drift_status():
     }
 
 
+@app.websocket("/ws/detect")
+async def websocket_detect(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time detection.
+    Receives base64 images, returns detection results.
+    """
+    await websocket.accept()
+    print("🔌 WebSocket client connected")
+    
+    try:
+        while True:
+            # Receive frame data
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            
+            if engine is None:
+                await websocket.send_json({
+                    "error": "Model not loaded",
+                    "count": 0,
+                    "detections": [],
+                    "inference_time_ms": 0,
+                    "drift_score": 0
+                })
+                continue
+            
+            try:
+                # Decode base64 image
+                img_data = base64.b64decode(message.get("image", ""))
+                nparr = np.frombuffer(img_data, np.uint8)
+                frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                
+                if frame is None:
+                    await websocket.send_json({"error": "Invalid image"})
+                    continue
+                
+                # Update confidence if provided
+                if "confidence" in message:
+                    engine.confidence_threshold = float(message["confidence"])
+                
+                # Run inference
+                result = engine.predict(frame)
+                
+                # Check drift
+                drift_score = 0.0
+                drift_status = "normal"
+                if drift_detector is not None:
+                    drift_score, _ = drift_detector.compute_drift_score(frame)
+                    drift_status = drift_detector.get_drift_status(drift_score)
+                    update_drift_score(drift_score, drift_status == "alert")
+                
+                # Send results
+                await websocket.send_json({
+                    "success": True,
+                    "count": result.count,
+                    "detections": result.to_dict()["detections"],
+                    "inference_time_ms": result.inference_time_ms,
+                    "drift_score": drift_score,
+                    "drift_status": drift_status
+                })
+                
+            except Exception as e:
+                await websocket.send_json({
+                    "error": str(e),
+                    "count": 0,
+                    "detections": [],
+                    "inference_time_ms": 0,
+                    "drift_score": 0
+                })
+    
+    except WebSocketDisconnect:
+        print("🔌 WebSocket client disconnected")
+    except Exception as e:
+        print(f"⚠️ WebSocket error: {e}")
+
+
 # Run with: uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+
