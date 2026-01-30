@@ -7,6 +7,7 @@ const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
 
 function App() {
     // State
+    const [activeTab, setActiveTab] = useState('webcam');
     const [isStreaming, setIsStreaming] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     const [metrics, setMetrics] = useState({
@@ -19,6 +20,11 @@ function App() {
     const [confidence, setConfidence] = useState(0.5);
     const [modelInfo, setModelInfo] = useState(null);
     const [error, setError] = useState(null);
+
+    // Image upload state
+    const [uploadedImage, setUploadedImage] = useState(null);
+    const [uploadResult, setUploadResult] = useState(null);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     // Refs
     const videoRef = useRef(null);
@@ -99,7 +105,6 @@ function App() {
 
         wsRef.current.onclose = () => {
             console.log('WebSocket closed');
-            setIsConnected(false);
         };
     };
 
@@ -229,6 +234,38 @@ function App() {
         }
     };
 
+    // Handle image upload
+    const handleImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploadedImage(URL.createObjectURL(file));
+        setIsProcessing(true);
+        setUploadResult(null);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(`${API_URL}/predict?annotate=true`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setUploadResult(data);
+            } else {
+                setError('Failed to process image');
+            }
+        } catch (err) {
+            console.error('Upload error:', err);
+            setError('Failed to connect to API');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     // Get status text
     const getStatusText = () => {
         switch (driftStatus) {
@@ -252,6 +289,28 @@ function App() {
                 </p>
             </header>
 
+            {/* Tab Navigation */}
+            <div className="tabs">
+                <button
+                    className={`tab ${activeTab === 'webcam' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('webcam')}
+                >
+                    📹 Live Webcam
+                </button>
+                <button
+                    className={`tab ${activeTab === 'upload' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('upload')}
+                >
+                    📁 Upload Image
+                </button>
+                <button
+                    className={`tab ${activeTab === 'metrics' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('metrics')}
+                >
+                    📊 Model Metrics
+                </button>
+            </div>
+
             {/* Error Banner */}
             {error && (
                 <div className="glass-card" style={{ marginBottom: '20px', borderColor: 'rgba(255, 107, 107, 0.5)' }}>
@@ -261,76 +320,198 @@ function App() {
 
             {/* Main Content */}
             <div className="main-content">
-                {/* Video Section */}
-                <div className="glass-card">
-                    <h2 className="card-title">
-                        <span className="icon">📹</span>
-                        Live Detection
-                    </h2>
+                {/* Webcam Tab */}
+                {activeTab === 'webcam' && (
+                    <div className="glass-card">
+                        <h2 className="card-title">
+                            <span className="icon">📹</span>
+                            Live Detection
+                        </h2>
 
-                    <div className="video-container">
-                        {!isStreaming ? (
-                            <div className="placeholder">
-                                <span className="icon">🎥</span>
-                                <span className="text">Click "Start Detection" to begin</span>
+                        <div className="video-container">
+                            {!isStreaming ? (
+                                <div className="placeholder">
+                                    <span className="icon">🎥</span>
+                                    <span className="text">Click "Start Detection" to begin</span>
+                                </div>
+                            ) : (
+                                <>
+                                    <video ref={videoRef} autoPlay playsInline muted />
+                                    <canvas ref={overlayCanvasRef} style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        pointerEvents: 'none'
+                                    }} />
+                                    <div className="video-overlay">
+                                        <div className="video-stat">
+                                            FPS: <span className="value">{metrics.fps}</span>
+                                        </div>
+                                        <div className="video-stat">
+                                            Latency: <span className="value">{metrics.latency.toFixed(0)}ms</span>
+                                        </div>
+                                        <div className="video-stat">
+                                            Objects: <span className="value">{metrics.detections}</span>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                            <canvas ref={canvasRef} style={{ display: 'none' }} />
+                        </div>
+
+                        {/* Controls */}
+                        <div className="controls">
+                            {!isStreaming ? (
+                                <button className="btn btn-primary" onClick={startDetection}>
+                                    🚀 Start Detection
+                                </button>
+                            ) : (
+                                <button className="btn btn-danger" onClick={stopDetection}>
+                                    ⏹️ Stop Detection
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Confidence Slider */}
+                        <div className="slider-container">
+                            <div className="slider-label">
+                                <span>Confidence Threshold</span>
+                                <span>{(confidence * 100).toFixed(0)}%</span>
                             </div>
-                        ) : (
-                            <>
-                                <video ref={videoRef} autoPlay playsInline muted />
-                                <canvas ref={overlayCanvasRef} style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
-                                    height: '100%',
-                                    pointerEvents: 'none'
-                                }} />
-                                <div className="video-overlay">
-                                    <div className="video-stat">
-                                        FPS: <span className="value">{metrics.fps}</span>
+                            <input
+                                type="range"
+                                className="slider"
+                                min="0.1"
+                                max="0.9"
+                                step="0.05"
+                                value={confidence}
+                                onChange={(e) => setConfidence(parseFloat(e.target.value))}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Upload Tab */}
+                {activeTab === 'upload' && (
+                    <div className="glass-card">
+                        <h2 className="card-title">
+                            <span className="icon">📁</span>
+                            Upload Image
+                        </h2>
+
+                        <div className="upload-area">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                id="image-upload"
+                                style={{ display: 'none' }}
+                            />
+                            <label htmlFor="image-upload" className="upload-label">
+                                <span className="upload-icon">📤</span>
+                                <span>Click to upload an image</span>
+                                <span className="upload-hint">Supports JPG, PNG, WEBP</span>
+                            </label>
+                        </div>
+
+                        {isProcessing && (
+                            <div className="processing">
+                                <div className="loading-spinner"></div>
+                                <span>Processing image...</span>
+                            </div>
+                        )}
+
+                        {uploadResult && (
+                            <div className="result-container">
+                                <img
+                                    src={`data:image/jpeg;base64,${uploadResult.annotated_image}`}
+                                    alt="Detection result"
+                                    className="result-image"
+                                />
+                                <div className="result-stats">
+                                    <div className="result-stat">
+                                        <span className="label">Detections</span>
+                                        <span className="value">{uploadResult.count}</span>
                                     </div>
-                                    <div className="video-stat">
-                                        Latency: <span className="value">{metrics.latency.toFixed(0)}ms</span>
+                                    <div className="result-stat">
+                                        <span className="label">Inference</span>
+                                        <span className="value">{uploadResult.inference_time_ms?.toFixed(1)}ms</span>
                                     </div>
-                                    <div className="video-stat">
-                                        Objects: <span className="value">{metrics.detections}</span>
+                                    <div className="result-stat">
+                                        <span className="label">Drift Score</span>
+                                        <span className="value">{uploadResult.drift_score?.toFixed(2)}</span>
                                     </div>
                                 </div>
-                            </>
-                        )}
-                        <canvas ref={canvasRef} style={{ display: 'none' }} />
-                    </div>
-
-                    {/* Controls */}
-                    <div className="controls">
-                        {!isStreaming ? (
-                            <button className="btn btn-primary" onClick={startDetection}>
-                                🚀 Start Detection
-                            </button>
-                        ) : (
-                            <button className="btn btn-danger" onClick={stopDetection}>
-                                ⏹️ Stop Detection
-                            </button>
+                            </div>
                         )}
                     </div>
+                )}
 
-                    {/* Confidence Slider */}
-                    <div className="slider-container">
-                        <div className="slider-label">
-                            <span>Confidence Threshold</span>
-                            <span>{(confidence * 100).toFixed(0)}%</span>
+                {/* Metrics Tab */}
+                {activeTab === 'metrics' && (
+                    <div className="glass-card">
+                        <h2 className="card-title">
+                            <span className="icon">📊</span>
+                            Model Performance Metrics
+                        </h2>
+
+                        <div className="metrics-section">
+                            <h3>Training Results (CrowdHuman)</h3>
+                            <div className="metrics-table">
+                                <div className="metric-row">
+                                    <span className="metric-name">mAP@50</span>
+                                    <span className="metric-value highlight">66.2%</span>
+                                </div>
+                                <div className="metric-row">
+                                    <span className="metric-name">mAP@50-95</span>
+                                    <span className="metric-value">39.5%</span>
+                                </div>
+                                <div className="metric-row">
+                                    <span className="metric-name">Precision</span>
+                                    <span className="metric-value">77.7%</span>
+                                </div>
+                                <div className="metric-row">
+                                    <span className="metric-name">Recall</span>
+                                    <span className="metric-value">55.9%</span>
+                                </div>
+                            </div>
                         </div>
-                        <input
-                            type="range"
-                            className="slider"
-                            min="0.1"
-                            max="0.9"
-                            step="0.05"
-                            value={confidence}
-                            onChange={(e) => setConfidence(parseFloat(e.target.value))}
-                        />
+
+                        <div className="metrics-section">
+                            <h3>Inference Performance</h3>
+                            <div className="metrics-table">
+                                <div className="metric-row">
+                                    <span className="metric-name">Preprocess</span>
+                                    <span className="metric-value">2.2ms</span>
+                                </div>
+                                <div className="metric-row">
+                                    <span className="metric-name">Inference</span>
+                                    <span className="metric-value highlight">8.5ms</span>
+                                </div>
+                                <div className="metric-row">
+                                    <span className="metric-name">Postprocess</span>
+                                    <span className="metric-value">2.3ms</span>
+                                </div>
+                                <div className="metric-row">
+                                    <span className="metric-name">Throughput</span>
+                                    <span className="metric-value">~117 FPS</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="metrics-section">
+                            <h3>API Endpoints</h3>
+                            <div className="api-list">
+                                <code>POST /predict</code> - Run detection on image
+                                <code>GET /health</code> - Health check
+                                <code>GET /metrics</code> - Prometheus metrics
+                                <code>WS /ws/detect</code> - Real-time WebSocket
+                            </div>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Sidebar */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -342,7 +523,7 @@ function App() {
                         </div>
                     </div>
 
-                    {/* Metrics */}
+                    {/* Live Metrics */}
                     <div className="glass-card">
                         <h3 className="card-title">
                             <span className="icon">📊</span>
@@ -383,28 +564,24 @@ function App() {
                             <span className="icon">🤖</span>
                             Model Info
                         </h3>
-                        {modelInfo ? (
-                            <div className="model-info">
-                                <div className="info-row">
-                                    <span className="key">Model</span>
-                                    <span className="val">{modelInfo.model_name || 'YOLOv8n'}</span>
-                                </div>
-                                <div className="info-row">
-                                    <span className="key">Dataset</span>
-                                    <span className="val">CrowdHuman</span>
-                                </div>
-                                <div className="info-row">
-                                    <span className="key">mAP@50</span>
-                                    <span className="val">66.2%</span>
-                                </div>
-                                <div className="info-row">
-                                    <span className="key">Classes</span>
-                                    <span className="val">person</span>
-                                </div>
+                        <div className="model-info">
+                            <div className="info-row">
+                                <span className="key">Model</span>
+                                <span className="val">YOLOv8n</span>
                             </div>
-                        ) : (
-                            <p style={{ color: 'var(--text-muted)' }}>Loading model info...</p>
-                        )}
+                            <div className="info-row">
+                                <span className="key">Dataset</span>
+                                <span className="val">CrowdHuman</span>
+                            </div>
+                            <div className="info-row">
+                                <span className="key">mAP@50</span>
+                                <span className="val">66.2%</span>
+                            </div>
+                            <div className="info-row">
+                                <span className="key">Classes</span>
+                                <span className="val">person</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
