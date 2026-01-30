@@ -1,20 +1,25 @@
 # Real-Time Object Detection with MLOps Monitoring
 
-A production-ready object detection system with drift monitoring, deployed as a containerized web service.
+A production-ready object detection system with drift monitoring, deployed as a microservices architecture.
+
+## 🌐 Live Demo
+
+👉 **[Try it Live!](https://realtime-detection-mlops.vercel.app)** | [API Docs](https://realtime-detection-api.onrender.com/docs) | [GitHub](https://github.com/raghavendra-24/realtime-detection-mlops)
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-green)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-orange)
+![React](https://img.shields.io/badge/React-Vite-blue)
 ![Docker](https://img.shields.io/badge/Docker-Compose-blue)
 
 ## 🎯 Features
 
 - **Real-Time Detection**: YOLOv8 Nano trained on CrowdHuman (~117 FPS on GPU)
+- **React Frontend**: WebRTC webcam streaming with live bounding boxes
 - **Drift Detection**: Automatic monitoring for input distribution shifts
 - **MLOps Monitoring**: Prometheus metrics + Grafana dashboard
-- **Web Interface**: Interactive Streamlit demo with webcam support
-- **REST API**: FastAPI backend for production integration
-- **Containerized**: Docker Compose for easy deployment
+- **REST API + WebSocket**: FastAPI backend for production integration
+- **Cloud Deployed**: Frontend on Vercel, Backend on Render
 
 ## 📊 Model Performance
 
