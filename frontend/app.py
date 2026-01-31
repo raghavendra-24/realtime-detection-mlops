@@ -1,5 +1,5 @@
 """
-Streamlit Frontend for Real-Time Object Detection
+Streamlit Frontend for Real-Time Helmet Detection
 Interactive webcam demo with metrics dashboard.
 """
 
@@ -24,13 +24,13 @@ from backend.model_downloader import ensure_models_exist
 ensure_models_exist()
 
 # Configuration
-MODEL_PATH = Path(__file__).parent.parent / "models" / "crowdhuman_yolov8n_best.pt"
+MODEL_PATH = Path(__file__).parent.parent / "models" / "helmet_yolov8s_best.pt"
 BASELINE_PATH = Path(__file__).parent.parent / "models" / "baseline_stats.json"
 
 # Page config
 st.set_page_config(
-    page_title="Real-Time Detection | MLOps Demo",
-    page_icon="🎯",
+    page_title="Helmet Detection | MLOps Demo",
+    page_icon="🦺",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -105,9 +105,8 @@ def load_drift_detector():
     )
 
 
-def main():
     # Header
-    st.markdown('<p class="header-gradient">🎯 Real-Time Object Detection</p>', unsafe_allow_html=True)
+    st.markdown('<p class="header-gradient">🦺 Real-Time Helmet Detection</p>', unsafe_allow_html=True)
     st.markdown("*YOLOv8 with MLOps Monitoring*")
     st.markdown("---")
     
@@ -151,9 +150,8 @@ def main():
     # Main content
     if engine is None:
         st.error("⚠️ Model not loaded. Please place your model files in the `models/` directory.")
-        st.markdown("""
         ### Required Files:
-        1. `models/crowdhuman_yolov8n_best.pt` - YOLOv8 model
+        1. `models/helmet_yolov8s_best.pt` - YOLOv8 model
         2. `models/baseline_stats.json` - Baseline statistics for drift detection
         """)
         return

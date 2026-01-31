@@ -1,4 +1,4 @@
-# Real-Time Object Detection with MLOps Monitoring
+# Real-Time Helmet Detection with MLOps Monitoring
 
 # Core ML/DL
 ultralytics>=8.0.0

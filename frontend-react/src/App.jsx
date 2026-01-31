@@ -154,22 +154,28 @@ function App() {
         detections.forEach(det => {
             const [x1, y1, x2, y2] = det.bbox;
             const conf = det.confidence;
+            const className = det.class || 'unknown';
+
+            // Color based on class: green for helmet, red for no_helmet
+            const isHelmet = className === 'helmet';
+            const boxColor = isHelmet ? '#38ef7d' : '#ef3838';
+            const bgColor = isHelmet ? 'rgba(56, 239, 125, 0.9)' : 'rgba(239, 56, 56, 0.9)';
 
             // Draw box
-            ctx.strokeStyle = '#38ef7d';
+            ctx.strokeStyle = boxColor;
             ctx.lineWidth = 3;
             ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
 
             // Draw label background
-            const label = `person ${(conf * 100).toFixed(0)}%`;
+            const label = `${className} ${(conf * 100).toFixed(0)}%`;
             ctx.font = 'bold 14px Inter';
             const textWidth = ctx.measureText(label).width;
 
-            ctx.fillStyle = 'rgba(56, 239, 125, 0.9)';
+            ctx.fillStyle = bgColor;
             ctx.fillRect(x1, y1 - 25, textWidth + 10, 22);
 
             // Draw label text
-            ctx.fillStyle = '#0a0a1a';
+            ctx.fillStyle = '#ffffff';
             ctx.fillText(label, x1 + 5, y1 - 8);
         });
     };
@@ -282,7 +288,7 @@ function App() {
         <div className="app-container">
             {/* Header */}
             <header className="header">
-                <h1>🎯 Real-Time Detection</h1>
+                <h1>🦺 Real-Time Helmet Detection</h1>
                 <p className="subtitle">
                     YOLOv8 with MLOps Monitoring
                     <span className="live-badge">LIVE</span>
@@ -458,23 +464,31 @@ function App() {
                         </h2>
 
                         <div className="metrics-section">
-                            <h3>Training Results (CrowdHuman)</h3>
+                            <h3>Training Results (Hard Hat Detection)</h3>
                             <div className="metrics-table">
                                 <div className="metric-row">
                                     <span className="metric-name">mAP@50</span>
-                                    <span className="metric-value highlight">66.2%</span>
+                                    <span className="metric-value highlight">86.7%</span>
                                 </div>
                                 <div className="metric-row">
                                     <span className="metric-name">mAP@50-95</span>
-                                    <span className="metric-value">39.5%</span>
+                                    <span className="metric-value">50.0%</span>
                                 </div>
                                 <div className="metric-row">
                                     <span className="metric-name">Precision</span>
-                                    <span className="metric-value">77.7%</span>
+                                    <span className="metric-value">87.5%</span>
                                 </div>
                                 <div className="metric-row">
                                     <span className="metric-name">Recall</span>
-                                    <span className="metric-value">55.9%</span>
+                                    <span className="metric-value">77.5%</span>
+                                </div>
+                                <div className="metric-row">
+                                    <span className="metric-name">Helmet Precision</span>
+                                    <span className="metric-value">91.4%</span>
+                                </div>
+                                <div className="metric-row">
+                                    <span className="metric-name">No-Helmet Recall</span>
+                                    <span className="metric-value">78.1%</span>
                                 </div>
                             </div>
                         </div>
@@ -484,19 +498,19 @@ function App() {
                             <div className="metrics-table">
                                 <div className="metric-row">
                                     <span className="metric-name">Preprocess</span>
-                                    <span className="metric-value">2.2ms</span>
+                                    <span className="metric-value">0.2ms</span>
                                 </div>
                                 <div className="metric-row">
                                     <span className="metric-name">Inference</span>
-                                    <span className="metric-value highlight">8.5ms</span>
+                                    <span className="metric-value highlight">6.6ms</span>
                                 </div>
                                 <div className="metric-row">
                                     <span className="metric-name">Postprocess</span>
-                                    <span className="metric-value">2.3ms</span>
+                                    <span className="metric-value">1.5ms</span>
                                 </div>
                                 <div className="metric-row">
                                     <span className="metric-name">Throughput</span>
-                                    <span className="metric-value">~117 FPS</span>
+                                    <span className="metric-value">~120 FPS</span>
                                 </div>
                             </div>
                         </div>
@@ -567,19 +581,19 @@ function App() {
                         <div className="model-info">
                             <div className="info-row">
                                 <span className="key">Model</span>
-                                <span className="val">YOLOv8n</span>
+                                <span className="val">YOLOv8s</span>
                             </div>
                             <div className="info-row">
                                 <span className="key">Dataset</span>
-                                <span className="val">CrowdHuman</span>
+                                <span className="val">Hard Hat Detection</span>
                             </div>
                             <div className="info-row">
                                 <span className="key">mAP@50</span>
-                                <span className="val">66.2%</span>
+                                <span className="val">86.7%</span>
                             </div>
                             <div className="info-row">
                                 <span className="key">Classes</span>
-                                <span className="val">person</span>
+                                <span className="val">helmet, no_helmet</span>
                             </div>
                         </div>
                     </div>
@@ -590,7 +604,7 @@ function App() {
             <footer className="footer">
                 <p>
                     Built with YOLOv8, FastAPI, React & WebRTC |{' '}
-                    <a href="https://github.com/raghavendra-24/realtime-detection-mlops" target="_blank" rel="noopener noreferrer">
+                    <a href="https://github.com/raghavendra-24/realtime-helmet-detection" target="_blank" rel="noopener noreferrer">
                         GitHub
                     </a>
                 </p>

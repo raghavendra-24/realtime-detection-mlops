@@ -1,6 +1,6 @@
 """
 YOLOv8 Inference Engine
-Handles model loading and real-time object detection.
+Handles model loading and real-time helmet detection.
 """
 
 import cv2

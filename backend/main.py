@@ -1,6 +1,6 @@
 """
-FastAPI Backend for Real-Time Object Detection
-Provides REST API and WebSocket for inference, metrics, and health checks.
+FastAPI Backend for Real-Time Helmet Detection
+Provides REST API and WebSocket for helmet compliance inference, metrics, and health checks.
 """
 
 import io
@@ -28,7 +28,7 @@ from .metrics import (
 
 
 # Configuration
-MODEL_PATH = Path(__file__).parent.parent / "models" / "crowdhuman_yolov8n_best.pt"
+MODEL_PATH = Path(__file__).parent.parent / "models" / "helmet_yolov8s_best.pt"
 BASELINE_PATH = Path(__file__).parent.parent / "models" / "baseline_stats.json"
 
 # Global instances
@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
     if MODEL_PATH.exists():
         engine = InferenceEngine(
             model_path=str(MODEL_PATH),
-            confidence_threshold=0.5,
+            confidence_threshold=0.3,  # Lower threshold for more detections
             device="cpu"  # Use "cuda" if GPU available
         )
         print(f"✅ Model loaded from {MODEL_PATH}")
@@ -76,8 +76,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="Real-Time Object Detection API",
-    description="YOLOv8-based detection with drift monitoring",
+    title="Real-Time Helmet Detection API",
+    description="YOLOv8-based helmet compliance detection with drift monitoring",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -143,7 +143,7 @@ async def predict(
     annotate: bool = Query(False, description="Return annotated image")
 ):
     """
-    Run object detection on an uploaded image.
+    Run helmet detection on an uploaded image.
     
     Args:
         file: Image file (JPEG, PNG)

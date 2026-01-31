@@ -32,14 +32,14 @@ def ensure_models_exist(models_dir: Path = None):
     - BASELINE_URL: Direct URL to download baseline_stats.json
     
     Or use Hugging Face Hub:
-    - HF_MODEL_REPO: Repository name (e.g., "username/crowdhuman-yolov8n")
+    - HF_MODEL_REPO: Repository name (e.g., "username/helmet-yolov8s")
     """
     if models_dir is None:
         models_dir = Path(__file__).parent.parent / "models"
     
     models_dir.mkdir(exist_ok=True)
     
-    model_path = models_dir / "crowdhuman_yolov8n_best.pt"
+    model_path = models_dir / "helmet_yolov8s_best.pt"
     baseline_path = models_dir / "baseline_stats.json"
     
     # Check if models already exist
@@ -79,7 +79,7 @@ def ensure_models_exist(models_dir: Path = None):
                 print(f"📥 Downloading model from Hugging Face: {hf_repo}")
                 hf_hub_download(
                     repo_id=hf_repo,
-                    filename="crowdhuman_yolov8n_best.pt",
+                    filename="helmet_yolov8s_best.pt",
                     local_dir=str(models_dir)
                 )
             

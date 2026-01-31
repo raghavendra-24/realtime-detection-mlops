@@ -1,10 +1,10 @@
-# Real-Time Object Detection with MLOps Monitoring
+# Real-Time Helmet Detection with MLOps Monitoring
 
-A production-ready object detection system with drift monitoring, deployed as a microservices architecture.
+A production-ready helmet compliance detection system with drift monitoring, deployed as a microservices architecture.
 
 ## 🌐 Live Demo
 
-👉 **[Try it Live!](https://realtime-detection-mlops.vercel.app)** | [API Docs](https://realtime-detection-api.onrender.com/docs) | [GitHub](https://github.com/raghavendra-24/realtime-detection-mlops)
+👉 **[Live Demo Coming Soon]** | [API Docs Coming Soon] | [GitHub](https://github.com/raghavendra-24/realtime-helmet-detection)
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-green)
@@ -14,7 +14,8 @@ A production-ready object detection system with drift monitoring, deployed as a 
 
 ## 🎯 Features
 
-- **Real-Time Detection**: YOLOv8 Nano trained on CrowdHuman (~117 FPS on GPU)
+- **Real-Time Helmet Detection**: YOLOv8s trained on Hard Hat Detection dataset (~120 FPS on GPU)
+- **Two Classes**: `helmet` (safety compliant) and `no_helmet` (violation)
 - **React Frontend**: WebRTC webcam streaming with live bounding boxes
 - **Drift Detection**: Automatic monitoring for input distribution shifts
 - **MLOps Monitoring**: Prometheus metrics + Grafana dashboard
@@ -25,10 +26,13 @@ A production-ready object detection system with drift monitoring, deployed as a 
 
 | Metric | Value |
 |--------|-------|
-| mAP@50 | 66.2% |
-| Precision | 80.4% |
-| Recall | 56.0% |
-| Inference | 8.5ms (GPU) |
+| mAP@50 | **86.7%** |
+| mAP@50-95 | 50.0% |
+| Precision | 87.5% |
+| Recall | 77.5% |
+| Helmet Precision | 91.4% |
+| No-Helmet Recall | 78.1% |
+| Inference | 6.6ms (GPU) |
 
 ## 🚀 Quick Start
 
@@ -39,26 +43,31 @@ A production-ready object detection system with drift monitoring, deployed as a 
 ### Local Setup
 
 ```bash
-cd realtime-detection-mlops
+cd realtime-helmet-detection
 python -m venv venv
 venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 
-# Add model files to models/ folder:
-# - crowdhuman_yolov8n_best.pt
+# Model files should be in models/ folder:
+# - helmet_yolov8s_best.pt
 # - baseline_stats.json
 
-# Run
-streamlit run frontend/app.py
+# Run Backend
+uvicorn backend.main:app --reload
+
+# Run Frontend (in new terminal)
+cd frontend-react
+npm install
+npm run dev
 ```
 
 ### Docker
 
 ```bash
 docker-compose up --build
-# Frontend: http://localhost:8501
+# Frontend: http://localhost:3000
 # API: http://localhost:8000
-# Grafana: http://localhost:3000
+# Grafana: http://localhost:3001
 ```
 
 ## ☁️ Cloud Deployment
@@ -69,7 +78,7 @@ docker-compose up --build
    ```bash
    pip install huggingface_hub
    huggingface-cli login
-   huggingface-cli upload your-username/crowdhuman-yolov8n ./models/
+   huggingface-cli upload your-username/helmet-yolov8s ./models/
    ```
 
 2. **Push code to GitHub**
@@ -78,7 +87,7 @@ docker-compose up --build
    - Go to [share.streamlit.io](https://share.streamlit.io)
    - Connect your GitHub repo
    - Set main file: `frontend/app.py`
-   - Add secret: `HF_MODEL_REPO = "your-username/crowdhuman-yolov8n"`
+   - Add secret: `HF_MODEL_REPO = "your-username/helmet-yolov8s"`
 
 ### Option 2: Railway/Render
 
@@ -91,14 +100,20 @@ docker-compose up --build
 ## 📁 Project Structure
 
 ```
-realtime-detection-mlops/
+realtime-helmet-detection/
 ├── models/                    # Model files
+│   ├── helmet_yolov8s_best.pt
+│   ├── best.onnx
+│   ├── baseline_stats.json
+│   └── metrics.json
 ├── backend/                   # FastAPI backend
 │   ├── main.py               # API endpoints
-│   ├── inference.py          # YOLOv8 engine
+│   ├── helmet_inference.py   # Helmet detection engine
 │   ├── drift_detector.py     # Drift detection
 │   └── metrics.py            # Prometheus metrics
-├── frontend/app.py           # Streamlit UI
+├── frontend-react/           # React + Vite frontend
+├── frontend/app.py           # Streamlit UI (alternative)
+├── kaggle_training.py        # Training script
 ├── monitoring/               # Prometheus + Grafana
 ├── docker-compose.yml
 └── requirements.txt
@@ -109,15 +124,28 @@ realtime-detection-mlops/
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/health` | GET | Health check |
-| `/predict` | POST | Run detection on image |
+| `/predict` | POST | Run helmet detection on image |
+| `/model-info` | GET | Get model metadata |
 | `/metrics` | GET | Prometheus metrics |
+| `/ws/detect` | WebSocket | Real-time detection stream |
+
+## 🧠 Training
+
+Training was performed on Kaggle with:
+- **Dataset**: Hard Hat Detection + COCO negatives
+- **Model**: YOLOv8s (11M parameters)
+- **Epochs**: 40
+- **Augmentations**: Mosaic, MixUp, Copy-Paste, HSV jitter
+
+See `kaggle_training.py` for full training pipeline.
 
 ## 📝 Resume Highlights
 
-> **Real-Time Object Detection System with MLOps Monitoring**
-> - Trained YOLOv8 on CrowdHuman achieving **66.2% mAP@50** with **117 FPS**
+> **Real-Time Helmet Compliance Detection with MLOps Monitoring**
+> - Trained YOLOv8s on Hard Hat Detection achieving **86.7% mAP@50** with **120 FPS**
+> - Built **two-class detector** for `helmet` and `no_helmet` with **91.4% helmet precision**
 > - Implemented **drift detection** using statistical analysis
-> - Built REST API with **FastAPI** and demo with **Streamlit**
+> - Built REST API with **FastAPI** and React dashboard with **Vite**
 > - Integrated **Prometheus/Grafana** monitoring with alerts
 > - Containerized with **Docker Compose**
 
